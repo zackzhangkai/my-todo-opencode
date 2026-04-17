@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>待办清单</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Warm retro palette */
+      --bg-primary: #f7f3e8;
+      --bg-secondary: #fff9f0;
+      --text-primary: #2d2a26;
+      --text-secondary: #6b6560;
+      --accent-warm: #d4a574;
+      --accent-deep: #8b5a2b;
+      --accent-coral: #e07a5f;
+      --accent-sage: #81b29a;
+      --shadow-soft: rgba(45, 42, 38, 0.08);
+      --shadow-medium: rgba(45, 42, 38, 0.15);
+      --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Noto Sans SC', sans-serif;
+      background: var(--bg-primary);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 60px 20px;
+      color: var(--text-primary);
+    }
+
+    /* Subtle paper texture overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 520px;
+      animation: fadeInUp 0.6s var(--transition-smooth);
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .header h1 {
+      font-family: 'Noto Serif SC', serif;
+      font-size: 2.8rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+      letter-spacing: -0.02em;
+    }
+
+    .header .subtitle {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      font-weight: 300;
+    }
+
+    /* Stats bar */
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin-bottom: 30px;
+      padding: 16px 24px;
+      background: var(--bg-secondary);
+      border-radius: 16px;
+      box-shadow: 0 2px 12px var(--shadow-soft);
+    }
+
+    .stat-item {
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--accent-deep);
+      display: block;
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 4px;
+    }
+
+    /* Input section */
+    .input-section {
+      background: var(--bg-secondary);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 4px 24px var(--shadow-soft);
+      margin-bottom: 24px;
+    }
+
+    .input-wrapper {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .todo-input {
+      flex: 1;
+      padding: 16px 20px;
+      border: 2px solid transparent;
+      border-radius: 14px;
+      background: var(--bg-primary);
+      font-size: 1rem;
+      font-family: inherit;
+      color: var(--text-primary);
+      transition: all 0.3s var(--transition-smooth);
+    }
+
+    .todo-input::placeholder {
+      color: var(--text-secondary);
+      opacity: 0.6;
+    }
+
+    .todo-input:focus {
+      outline: none;
+      border-color: var(--accent-warm);
+      background: white;
+      box-shadow: 0 0 0 4px rgba(212, 165, 116, 0.15);
+    }
+
+    .add-btn {
+      padding: 16px 24px;
+      border: none;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--accent-warm) 0%, var(--accent-deep) 100%);
+      color: white;
+      font-size: 1rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.3s var(--transition-smooth);
+      white-space: nowrap;
+    }
+
+    .add-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(212, 165, 116, 0.4);
+    }
+
+    .add-btn:active {
+      transform: translateY(0);
+    }
+
+    /* Filter tabs */
+    .filters {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      justify-content: center;
+    }
+
+    .filter-btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 24px;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s var(--transition-smooth);
+    }
+
+    .filter-btn:hover {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+
+    .filter-btn.active {
+      background: var(--text-primary);
+      color: var(--bg-primary);
+    }
+
+    /* Todo list */
+    .todo-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .todo-item {
+      background: var(--bg-secondary);
+      border-radius: 16px;
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 2px 12px var(--shadow-soft);
+      transition: all 0.3s var(--transition-smooth);
+      animation: slideIn 0.4s var(--transition-smooth);
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .todo-item:hover {
+      box-shadow: 0 4px 20px var(--shadow-medium);
+      transform: translateY(-2px);
+    }
+
+    .todo-item.completed .todo-text {
+      text-decoration: line-through;
+      color: var(--text-secondary);
+    }
+
+    .todo-item.completed .checkbox {
+      background: var(--accent-sage);
+      border-color: var(--accent-sage);
+    }
+
+    .todo-item.editing .todo-text {
+      display: none;
+    }
+
+    .todo-item.editing .edit-input {
+      display: block;
+    }
+
+    /* Custom checkbox */
+    .checkbox {
+      width: 24px;
+      height: 24px;
+      border: 2px solid var(--accent-warm);
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s var(--transition-smooth);
+      flex-shrink: 0;
+    }
+
+    .checkbox:hover {
+      border-color: var(--accent-deep);
+      transform: scale(1.1);
+    }
+
+    .checkbox svg {
+      width: 14px;
+      height: 14px;
+      color: white;
+      opacity: 0;
+      transform: scale(0.5);
+      transition: all 0.2s var(--transition-smooth);
+    }
+
+    .todo-item.completed .checkbox svg {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    /* Todo text */
+    .todo-text {
+      flex: 1;
+      font-size: 1rem;
+      line-height: 1.5;
+      cursor: pointer;
+      transition: color 0.3s var(--transition-smooth);
+    }
+
+    .edit-input {
+      flex: 1;
+      display: none;
+      padding: 10px 14px;
+      border: 2px solid var(--accent-warm);
+      border-radius: 10px;
+      background: white;
+      font-size: 1rem;
+      font-family: inherit;
+      color: var(--text-primary);
+    }
+
+    .edit-input:focus {
+      outline: none;
+    }
+
+    /* Action buttons */
+    .actions {
+      display: flex;
+      gap: 8px;
+      opacity: 0;
+      transition: opacity 0.3s var(--transition-smooth);
+    }
+
+    .todo-item:hover .actions {
+      opacity: 1;
+    }
+
+    .action-btn {
+      width: 36px;
+      height: 36px;
+      border: none;
+      border-radius: 10px;
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s var(--transition-smooth);
+    }
+
+    .action-btn:hover {
+      background: var(--bg-primary);
+    }
+
+    .action-btn svg {
+      width: 18px;
+      height: 18px;
+      color: var(--text-secondary);
+      transition: color 0.2s var(--transition-smooth);
+    }
+
+    .action-btn.edit:hover svg {
+      color: var(--accent-warm);
+    }
+
+    .action-btn.delete:hover svg {
+      color: var(--accent-coral);
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-secondary);
+    }
+
+    .empty-state svg {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 20px;
+      opacity: 0.4;
+    }
+
+    .empty-state p {
+      font-size: 1.1rem;
+      font-weight: 300;
+    }
+
+    /* Clear completed button */
+    .clear-completed {
+      text-align: center;
+      margin-top: 24px;
+    }
+
+    .clear-btn {
+      padding: 12px 24px;
+      border: 1px solid var(--accent-warm);
+      border-radius: 24px;
+      background: transparent;
+      color: var(--accent-deep);
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s var(--transition-smooth);
+    }
+
+    .clear-btn:hover {
+      background: var(--accent-warm);
+      color: white;
+    }
+
+    /* Responsive */
+    @media (max-width: 480px) {
+      body {
+        padding: 40px 16px;
+      }
+
+      .header h1 {
+        font-size: 2.2rem;
+      }
+
+      .input-wrapper {
+        flex-direction: column;
+      }
+
+      .add-btn {
+        width: 100%;
+      }
+
+      .actions {
+        opacity: 1;
+      }
+    }
+
+    /* Delete animation */
+    .todo-item.deleting {
+      animation: slideOut 0.3s var(--transition-smooth) forwards;
+    }
+
+    @keyframes slideOut {
+      to {
+        opacity: 0;
+        transform: translateX(20px);
+        height: 0;
+        padding: 0;
+        margin: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>待办清单</h1>
+      <p class="subtitle">记录生活，完成每一个小目标</p>
+    </header>
+
+    <div class="stats">
+      <div class="stat-item">
+        <span class="stat-number" id="totalCount">0</span>
+        <span class="stat-label">总计</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number" id="activeCount">0</span>
+        <span class="stat-label">待办</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number" id="completedCount">0</span>
+        <span class="stat-label">已完成</span>
+      </div>
+    </div>
+
+    <div class="input-section">
+      <div class="input-wrapper">
+        <input 
+          type="text" 
+          class="todo-input" 
+          id="todoInput" 
+          placeholder="添加一个新的待办事项..."
+          autocomplete="off"
+        >
+        <button class="add-btn" id="addBtn">添加</button>
+      </div>
+    </div>
+
+    <div class="filters">
+      <button class="filter-btn active" data-filter="all">全部</button>
+      <button class="filter-btn" data-filter="active">待办</button>
+      <button class="filter-btn" data-filter="completed">已完成</button>
+    </div>
+
+    <ul class="todo-list" id="todoList"></ul>
+
+    <div class="empty-state" id="emptyState" style="display: none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+      </svg>
+      <p>暂无待办事项，添加一个吧！</p>
+    </div>
+
+    <div class="clear-completed" id="clearCompleted" style="display: none;">
+      <button class="clear-btn">清除已完成</button>
+    </div>
+  </div>
+
+  <script>
+    // State management
+    let todos = JSON.parse(localStorage.getItem('todos')) || [];
+    let currentFilter = 'all';
+
+    // DOM elements
+    const todoInput = document.getElementById('todoInput');
+    const addBtn = document.getElementById('addBtn');
+    const todoList = document.getElementById('todoList');
+    const emptyState = document.getElementById('emptyState');
+    const clearCompleted = document.getElementById('clearCompleted');
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    const totalCountEl = document.getElementById('totalCount');
+    const activeCountEl = document.getElementById('activeCount');
+    const completedCountEl = document.getElementById('completedCount');
+
+    // Initialize
+    renderTodos();
+    updateStats();
+
+    // Event listeners
+    addBtn.addEventListener('click', addTodo);
+    todoInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') addTodo();
+    });
+
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.filter;
+        renderTodos();
+      });
+    });
+
+    document.querySelector('.clear-btn').addEventListener('click', clearCompletedTodos);
+
+    // Functions
+    function addTodo() {
+      const text = todoInput.value.trim();
+      if (!text) return;
+
+      const todo = {
+        id: Date.now(),
+        text: text,
+        completed: false,
+        createdAt: new Date().toISOString()
+      };
+
+      todos.unshift(todo);
+      saveTodos();
+      renderTodos();
+      updateStats();
+      todoInput.value = '';
+      todoInput.focus();
+    }
+
+    function toggleTodo(id) {
+      const todo = todos.find(t => t.id === id);
+      if (todo) {
+        todo.completed = !todo.completed;
+        saveTodos();
+        renderTodos();
+        updateStats();
+      }
+    }
+
+    function deleteTodo(id) {
+      const todoEl = document.querySelector(`[data-id="${id}"]`);
+      if (todoEl) {
+        todoEl.classList.add('deleting');
+        setTimeout(() => {
+          todos = todos.filter(t => t.id !== id);
+          saveTodos();
+          renderTodos();
+          updateStats();
+        }, 300);
+      }
+    }
+
+    function startEdit(id) {
+      const todoEl = document.querySelector(`[data-id="${id}"]`);
+      const todo = todos.find(t => t.id === id);
+      if (!todoEl || !todo) return;
+
+      todoEl.classList.add('editing');
+      const editInput = todoEl.querySelector('.edit-input');
+      editInput.value = todo.text;
+      editInput.focus();
+      editInput.select();
+
+      const saveEdit = () => {
+        const newText = editInput.value.trim();
+        if (newText) {
+          todo.text = newText;
+          saveTodos();
+        }
+        todoEl.classList.remove('editing');
+        renderTodos();
+      };
+
+      editInput.addEventListener('blur', saveEdit, { once: true });
+      editInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          saveEdit();
+        }
+      });
+    }
+
+    function clearCompletedTodos() {
+      const completedIds = todos.filter(t => t.completed).map(t => t.id);
+      
+      completedIds.forEach(id => {
+        const todoEl = document.querySelector(`[data-id="${id}"]`);
+        if (todoEl) todoEl.classList.add('deleting');
+      });
+
+      setTimeout(() => {
+        todos = todos.filter(t => !t.completed);
+        saveTodos();
+        renderTodos();
+        updateStats();
+      }, 300);
+    }
+
+    function saveTodos() {
+      localStorage.setItem('todos', JSON.stringify(todos));
+    }
+
+    function updateStats() {
+      const total = todos.length;
+      const completed = todos.filter(t => t.completed).length;
+      const active = total - completed;
+
+      totalCountEl.textContent = total;
+      activeCountEl.textContent = active;
+      completedCountEl.textContent = completed;
+
+      clearCompleted.style.display = completed > 0 ? 'block' : 'none';
+    }
+
+    function renderTodos() {
+      let filteredTodos = todos;
+      
+      if (currentFilter === 'active') {
+        filteredTodos = todos.filter(t => !t.completed);
+      } else if (currentFilter === 'completed') {
+        filteredTodos = todos.filter(t => t.completed);
+      }
+
+      if (filteredTodos.length === 0) {
+        todoList.innerHTML = '';
+        emptyState.style.display = 'block';
+        return;
+      }
+
+      emptyState.style.display = 'none';
+      
+      todoList.innerHTML = filteredTodos.map(todo => `
+        <li class="todo-item ${todo.completed ? 'completed' : ''}" data-id="${todo.id}">
+          <div class="checkbox" onclick="window.toggleTodoItem(${todo.id})">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <span class="todo-text" ondblclick="window.startEditItem(${todo.id})">${escapeHtml(todo.text)}</span>
+          <input type="text" class="edit-input" value="${escapeHtml(todo.text)}">
+          <div class="actions">
+            <button class="action-btn edit" onclick="window.startEditItem(${todo.id})" title="编辑">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+            </button>
+            <button class="action-btn delete" onclick="window.deleteTodoItem(${todo.id})" title="删除">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
+              </svg>
+            </button>
+          </div>
+        </li>
+      `).join('');
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Expose functions to window for inline event handlers
+    window.toggleTodoItem = toggleTodo;
+    window.deleteTodoItem = deleteTodo;
+    window.startEditItem = startEdit;
+  </script>
+</body>
+</html>
